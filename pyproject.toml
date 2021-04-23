@@ -45,11 +45,13 @@ find = {}
 
 [tool.setuptools.package-data]
 openhtf = [
+    "py.typed",
     "output/web_gui/dist/*.*",
     "output/web_gui/dist/css/*",
     "output/web_gui/dist/js/*",
     "output/web_gui/dist/img/*",
     "output/web_gui/*.*",
+
 ]
 
 [tool.setuptools-protobuf]
