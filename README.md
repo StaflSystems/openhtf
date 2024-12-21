@@ -1,5 +1,10 @@
 **DISCLAIMER:** This is not an official Google product.
 
+## Stafl Fork Notes
+
+- Consuming projects, generally only `stafl-test-framework-common`, should pin to specific commit hashes; tags will not be generated.
+- Protoc must be installed on the path to use this package. Reference the `Install protoc` actions for each OS in <https://github.com/StaflSystems/stafl-test-framework-common/blob/main/.github/workflows/python-package.yml> for up-to-date installation directions.
+
 # OpenHTF
 The open-source hardware testing framework.
 
