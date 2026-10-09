@@ -272,6 +272,25 @@ class Test(object):
         _LOG.error('Test state: %s', self._executor.test_state)
         self._executor.abort()
 
+  def abort(self) -> bool:
+    """Abort the running test, as when an operator stops it.
+
+    The test ends with outcome ABORTED, and its teardown phases and output
+    callbacks still run. Unlike a second SIGINT, calling this again never
+    forcibly stops the process: once an abort is under way, further calls do
+    nothing, so a double-clicked stop button can't skip teardown.
+
+    Returns:
+      True if this call started the abort; False if no test was running or an
+      abort was already under way.
+    """
+    with self._lock:
+      if not self._executor or self._executor.abort_requested:
+        return False
+      _LOG.error('Aborting %s: stop requested', self)
+      self._executor.abort()
+      return True
+
   def execute(self,
               test_start: Optional[Union[phase_descriptor.PhaseT,
                                          Callable[[], str]]] = None,

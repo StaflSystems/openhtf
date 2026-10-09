@@ -22,6 +22,14 @@
       &nbsp;{{ test | elapsedTime:'(%s)' }}
     </div>
     <div class="u-flex-grow"></div>
+    <button
+        *ngIf="canStop"
+        type="button"
+        class="htf-rounded-button-red stop-button"
+        [disabled]="stopRequested"
+        (click)="stopTest()">
+      {{ stopRequested ? 'Stopping…' : 'Stop test' }}
+    </button>
     <div
       class="htf-status-indicator"
       [ngClass]="test.status | statusToClass">
