@@ -319,6 +319,10 @@ class TestState(util.SubscribableStateMixin):
   def is_finalized(self) -> bool:
     return self._status == self.Status.COMPLETED
 
+  @property
+  def status(self) -> 'TestState.Status':
+    return self._status
+
   def stop_running_phase(self) -> None:
     """Stops the currently running phase, allowing another phase to run."""
     self.running_phase_state = None

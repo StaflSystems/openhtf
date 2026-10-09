@@ -148,6 +148,11 @@ class TestExecutor(threads.KillableThread):
     self.wait()
     self.running_test_state.close()
 
+  @property
+  def abort_requested(self) -> bool:
+    """Whether abort() has been called on this executor."""
+    return self._abort.is_set()
+
   def abort(self) -> None:
     """Abort this test."""
     if self._abort.is_set():

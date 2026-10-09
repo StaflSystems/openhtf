@@ -31,6 +31,7 @@ import threading
 import time
 import types
 from typing import Optional, Union
+import urllib.parse
 
 import openhtf
 from openhtf.output.callbacks import mfg_inspector
@@ -44,6 +45,7 @@ from openhtf.util import functions
 from openhtf.util import multicast
 from openhtf.util import timeouts
 import sockjs.tornado
+import tornado.web
 
 CONF = configuration.CONF
 
@@ -387,6 +389,60 @@ class PhasesHandler(BaseTestHandler):
     self.write({'data': phase_descriptors})
 
 
+def _is_same_origin_json(request) -> bool:
+  """Whether a request is a JSON POST from a page served by this server.
+
+  A browser can send a cross-origin POST with a form-like body without asking
+  first, so requiring JSON makes it ask (CORS preflight), which this server
+  never grants for the abort endpoint. A request with an Origin header must
+  also come from this host and port. Requests without one (not from a
+  browser) are let through, like every other endpoint here.
+  """
+  content_type = request.headers.get('Content-Type', '')
+  if content_type.split(';')[0].strip().lower() != 'application/json':
+    return False
+  origin = request.headers.get('Origin')
+  if origin is None:
+    return True
+  return urllib.parse.urlsplit(origin).netloc == request.host
+
+
+class AbortHandler(tornado.web.RequestHandler):
+  """POST endpoint the station's own web UI calls to stop the running test.
+
+  The test ends ABORTED and its teardown phases and output callbacks still run
+  (see Test.abort). Unlike the other endpoints this one sends no CORS headers
+  and only accepts a JSON request from a page this server served, so another
+  web page open on a machine that can reach the station can't stop a test.
+  That also means the dashboard, which is served from a different port, can't
+  stop a test.
+  """
+
+  def post(self, test_uid):
+    if not _is_same_origin_json(self.request):
+      self.set_status(403)
+      self.write('Stop requests must come from this station\'s web UI.')
+      return
+
+    test, test_state = _get_executing_test()
+    if test is None or str(test.uid) != test_uid:
+      self.set_status(404)
+      self.write('Unknown test UID %s' % test_uid)
+      return
+
+    if test_state.status != test_state.Status.RUNNING:
+      self.set_status(409)
+      self.write('The test is not running.')
+      return
+
+    if not test.abort():
+      self.set_status(409)
+      self.write('The test is already stopping.')
+      return
+
+    self.set_status(204)
+
+
 class PlugsHandler(BaseTestHandler):
   """POST endpoints to receive plug responses from the frontend."""
 
@@ -639,6 +695,7 @@ class StationServer(web_gui_server.WebGuiServer):
     # Set up the other endpoints.
     routes.extend((
         (r'/tests/(?P<test_uid>[\w\d:]+)/phases', PhasesHandler),
+        (r'/tests/(?P<test_uid>[\w\d:]+)/abort', AbortHandler),
         (r'/tests/(?P<test_uid>[\w\d:]+)/plugs/(?P<plug_name>.+)',
          PlugsHandler),
         (r'/tests/(?P<test_uid>[\w\d:]+)/phases/(?P<phase_descriptor_id>\d+)/'

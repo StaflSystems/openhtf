@@ -3,6 +3,14 @@
 ## Stafl Fork Notes
 
 - Consuming projects, generally only `stafl-test-framework-common`, should pin to specific commit hashes; tags will not be generated.
+- The web GUI's prebuilt `openhtf/output/web_gui/dist/` must be rebuilt and committed after changing anything under `web_gui/src/`. Its Angular 4 / webpack 3 toolchain builds with Node 16 (newer Node fails; Node 10 can't get a node-sass binary); unchanged sources reproduce the committed `dist/` byte for byte. From `openhtf/output/web_gui/`:
+
+  ```bash
+  docker run --rm --platform linux/amd64 -v "$PWD":/app -w /app node:16 \
+    sh -c "npm ci --ignore-scripts && npm rebuild node-sass && npm run build"
+  ```
+
+  `--ignore-scripts` skips the e2e webdriver download, so `npm rebuild node-sass` fetches node-sass's binary. Delete the `node_modules/` it leaves behind afterwards.
 - Protoc must be installed on the path to use this package. Reference the `Install protoc` actions for each OS in <https://github.com/StaflSystems/stafl-test-framework-common/blob/main/.github/workflows/python-package.yml> for up-to-date installation directions.
 
 # OpenHTF
